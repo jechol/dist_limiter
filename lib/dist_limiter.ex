@@ -6,7 +6,7 @@ defmodule DistLimiter do
   end
 
   def consume(resource, {window, limit}, count) do
-    sum = get_sum_of_consumption(resource, window) |> IO.inspect(label: "consumption")
+    sum = get_sum_of_consumption(resource, window)
 
     if sum + count <= limit do
       DistLimiter.Server.record_consumption(get_local_server(resource), resource, count)
@@ -21,11 +21,10 @@ defmodule DistLimiter do
   defp get_sum_of_consumption(resource, window) do
     resource
     |> get_servers()
-    |> IO.inspect()
     |> Task.async_stream(fn server ->
       DistLimiter.Server.count_consumption(server, resource, window)
     end)
-    |> Stream.map(fn {:ok, count} -> count |> IO.inspect(label: "count") end)
+    |> Stream.map(fn {:ok, count} -> count end)
     |> Enum.sum()
   end
 
@@ -36,7 +35,7 @@ defmodule DistLimiter do
 
       [] ->
         {:ok, server} = DistLimiter.Server.start_link(resource)
-        UniPg.join(@scope, resource, [server]) |> IO.inspect(label: "joined")
+        UniPg.join(@scope, resource, [server])
         server
     end
   end
