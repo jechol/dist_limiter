@@ -83,7 +83,7 @@ defmodule Cluster do
   defp allow_boot() do
     localhost = :net_adm.localhost()
 
-    :erl_boot_server.start([localhost])
+    :erl_boot_server.start([localhost, {127, 0, 0, 1}])
   end
 
   defp add_code_paths(node) do
