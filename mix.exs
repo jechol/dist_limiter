@@ -5,7 +5,7 @@ defmodule DistLimiter.MixProject do
     [
       app: :dist_limiter,
       version: "0.1.0",
-      elixir: "~> 1.9",
+      elixir: "~> 1.7",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps()
