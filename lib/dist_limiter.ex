@@ -12,6 +12,11 @@ defmodule DistLimiter do
     end
   end
 
+  def get_remaining(resource, {window, limit}) do
+    sum = get_sum_of_consumption(resource, window)
+    limit - sum
+  end
+
   # Util
 
   defp get_sum_of_consumption(resource, window) do

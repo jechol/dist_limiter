@@ -8,9 +8,15 @@ defmodule DistLimiterTest do
   end
 
   test "local" do
-    {:ok, 1} = DistLimiter.consume(:resource1, {1000, 2}, 1)
-    {:ok, 0} = DistLimiter.consume(:resource1, {1000, 2}, 1)
-    {:error, :overflow} = DistLimiter.consume(:resource1, {1000, 2}, 1)
+    {:ok, 1} = DistLimiter.consume(:resource1, {200, 2}, 1)
+    {:ok, 0} = DistLimiter.consume(:resource1, {200, 2}, 1)
+    {:error, :overflow} = DistLimiter.consume(:resource1, {200, 2}, 1)
+
+    Process.sleep(300)
+
+    2 = DistLimiter.get_remaining(:resource1, {200, 2})
+    {:ok, 1} = DistLimiter.consume(:resource1, {200, 2}, 1)
+    1 = DistLimiter.get_remaining(:resource1, {200, 2})
   end
 
   test "distributed" do
