@@ -1,4 +1,4 @@
-defmodule DistLimiter.Server do
+defmodule DistLimiter.Counter do
   use GenStateMachine, callback_mode: [:state_functions, :state_enter]
 
   defstruct resource: nil, window: nil, records: []
@@ -11,12 +11,12 @@ defmodule DistLimiter.Server do
     {:ok, :counting, %__MODULE__{resource: resource, window: window, records: []}}
   end
 
-  def get_count(server, resource, window) do
-    GenStateMachine.call(server, {:get_count, resource, window})
+  def get_count(pid, resource, window) do
+    GenStateMachine.call(pid, {:get_count, resource, window})
   end
 
-  def count_up(server, resource, count) do
-    GenStateMachine.cast(server, {:count_up, resource, count})
+  def count_up(pid, resource, count) do
+    GenStateMachine.cast(pid, {:count_up, resource, count})
   end
 
   # Callback
