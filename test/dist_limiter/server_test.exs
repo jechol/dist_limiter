@@ -3,21 +3,31 @@ defmodule DistLimiter.ServerTest do
 
   alias DistLimiter.Server
 
-  test "record -> count" do
-    {:ok, pid} = Server.start_link(:resource1)
-    Server.record_consumption(pid, :resource1, 1)
-    Server.record_consumption(pid, :resource1, 1)
+  test "count" do
+    {:ok, pid} = Server.start_link(:resource1, 200)
+    Server.count_up(pid, :resource1, 1)
+    Server.count_up(pid, :resource1, 1)
 
-    2 = Server.count_consumption(pid, :resource1, 100)
+    assert Server.get_count(pid, :resource1, 200) == 2
   end
 
-  test "record -> sleep -> count" do
-    {:ok, pid} = Server.start_link(:resource1)
-    Server.record_consumption(pid, :resource1, 1)
-    Server.record_consumption(pid, :resource1, 1)
+  test "count -> stop" do
+    {:ok, pid} = Server.start_link(:resource1, 100)
+
+    Process.sleep(50)
+    Server.count_up(pid, :resource1, 1)
+
+    Process.sleep(70)
+    assert Process.alive?(pid)
+
+    Process.sleep(70)
+    refute Process.alive?(pid)
+  end
+
+  test "stop" do
+    {:ok, pid} = Server.start_link(:resource1, 100)
 
     Process.sleep(200)
-
-    0 = Server.count_consumption(pid, :resource1, 100)
+    refute Process.alive?(pid)
   end
 end

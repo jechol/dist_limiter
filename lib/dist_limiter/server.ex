@@ -1,48 +1,57 @@
 defmodule DistLimiter.Server do
-  use GenServer
+  use GenStateMachine, callback_mode: [:state_functions, :state_enter]
 
-  defstruct resource: nil, timestamps: []
+  defstruct resource: nil, window: nil, records: []
 
-  def start_link(resource) do
-    GenServer.start_link(__MODULE__, [resource])
+  def start_link(resource, window) do
+    GenStateMachine.start_link(__MODULE__, {resource, window})
   end
 
-  def init([resource]) do
-    {:ok, %__MODULE__{resource: resource}}
+  def init({resource, window}) do
+    {:ok, :counting, %__MODULE__{resource: resource, window: window, records: []}}
   end
 
-  def count_consumption(server, resource, window) do
-    GenServer.call(server, {:count_consumption, resource, window})
+  def get_count(server, resource, window) do
+    GenStateMachine.call(server, {:get_count, resource, window})
   end
 
-  def record_consumption(server, resource, count) do
-    GenServer.cast(server, {:record_consumption, resource, count})
+  def count_up(server, resource, count) do
+    GenStateMachine.cast(server, {:count_up, resource, count})
   end
 
   # Callback
 
-  def handle_call(
-        {:count_consumption, resource, window},
-        _from,
-        %__MODULE__{resource: resource, timestamps: timestamps} = state
+  def counting(:enter, _old_state, %__MODULE__{window: window}) do
+    {:keep_state_and_data, [{:state_timeout, window, :stop}]}
+  end
+
+  def counting(
+        :cast,
+        {:count_up, resource, count},
+        data = %__MODULE__{resource: resource, records: records}
+      ) do
+    now = :erlang.system_time(:millisecond)
+
+    {:repeat_state, %__MODULE__{data | records: [{now, count} | records]}}
+  end
+
+  def counting(
+        {:call, from},
+        {:get_count, resource, window},
+        data = %__MODULE__{resource: resource, records: records}
       ) do
     min_ts = :erlang.system_time(:millisecond) - window
 
-    consumption =
-      timestamps
+    count_sum =
+      records
       |> Stream.take_while(fn {ts, _count} -> ts >= min_ts end)
       |> Stream.map(fn {_ts, count} -> count end)
       |> Enum.sum()
 
-    {:reply, consumption, state}
+    {:keep_state, data, [{:reply, from, count_sum}]}
   end
 
-  def handle_cast(
-        {:record_consumption, resource, count},
-        %__MODULE__{resource: resource, timestamps: timestamps} = state
-      ) do
-    now = :erlang.system_time(:millisecond)
-
-    {:noreply, %__MODULE__{state | timestamps: [{now, count} | timestamps]}}
+  def counting(:state_timeout, :stop, %__MODULE__{}) do
+    :stop
   end
 end

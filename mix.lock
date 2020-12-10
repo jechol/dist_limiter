@@ -1,3 +1,4 @@
 %{
+  "gen_state_machine": {:hex, :gen_state_machine, "3.0.0", "1e57f86a494e5c6b14137ebef26a7eb342b3b0070c7135f2d6768ed3f6b6cdff", [:mix], [], "hexpm", "0a59652574bebceb7309f6b749d2a41b45fdeda8dbb4da0791e355dd19f0ed15"},
   "uni_pg": {:hex, :uni_pg, "0.2.1", "15e124abb60f0199126d71d81c81c0d239757834c90a13886e78fcab221b8013", [:mix], [], "hexpm", "df76ab9aa5c2a0c0e410fab1bf7a85d428545d49212d4c84d110b61f74c0c227"},
 }
