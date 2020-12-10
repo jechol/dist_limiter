@@ -1,15 +1,11 @@
 defmodule DistLimiter do
   @scope __MODULE__
 
-  def start() do
-    {:ok, self()}
-  end
-
   def consume(resource, {window, limit}, count) do
     sum = get_sum_of_consumption(resource, window)
 
     if sum + count <= limit do
-      DistLimiter.Server.record_consumption(get_local_server(resource), resource, count)
+      DistLimiter.Counter.count_up(get_local_server(resource, window), resource, count)
       {:ok, limit - (sum + count)}
     else
       {:error, :overflow}
@@ -22,21 +18,21 @@ defmodule DistLimiter do
     resource
     |> get_servers()
     |> Task.async_stream(fn server ->
-      DistLimiter.Server.count_consumption(server, resource, window)
+      DistLimiter.Counter.get_count(server, resource, window)
     end)
     |> Stream.map(fn {:ok, count} -> count end)
     |> Enum.sum()
   end
 
-  defp get_local_server(resource) do
+  defp get_local_server(resource, window) do
     case UniPg.get_local_members(@scope, resource) do
       [server] ->
         server
 
       [] ->
-        {:ok, server} = DistLimiter.Server.start_link(resource)
-        UniPg.join(@scope, resource, [server])
-        server
+        {:ok, counter} = DistLimiter.Counter.start_link(resource, window)
+        UniPg.join(@scope, resource, [counter])
+        counter
     end
   end
 

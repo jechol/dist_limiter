@@ -4,9 +4,6 @@ defmodule DistLimiterTest do
 
   setup do
     Cluster.ensure_other_node_started()
-
-    {:ok, _pid} = DistLimiter.start()
-    {:ok, _pid} = Cluster.rpc_other_node(DistLimiter, :start, [])
     :ok
   end
 
