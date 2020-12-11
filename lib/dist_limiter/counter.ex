@@ -1,14 +1,50 @@
 defmodule DistLimiter.Counter do
   use GenStateMachine, callback_mode: [:state_functions, :state_enter]
 
-  defstruct resource: nil, window: nil, records: []
+  @buffer_length 100
 
-  def start_link(resource, window) do
-    GenStateMachine.start_link(__MODULE__, {resource, window})
+  defmodule Data do
+    defstruct resource: nil, window: nil, records: [], total: 0, max_total: nil
+
+    def append(%__MODULE__{records: records, total: total} = data, {time, count} = r) do
+      %Data{data | records: [r | records], total: total + count}
+      |> trim_if_exceed_max(time)
+    end
+
+    def count_sum(%__MODULE__{records: records}, min_ts) do
+      records
+      |> Stream.take_while(fn {ts, _count} -> ts >= min_ts end)
+      |> Stream.map(fn {_ts, count} -> count end)
+      |> Enum.sum()
+    end
+
+    defp trim_if_exceed_max(
+           %Data{window: window, records: records, total: total, max_total: max_total} = data,
+           now
+         ) do
+      if total > max_total do
+        new_records =
+          records
+          |> Enum.take_while(fn {time, _} ->
+            time >= now - window
+          end)
+
+        new_total = new_records |> Enum.map(fn {_t, c} -> c end) |> Enum.sum()
+
+        %Data{data | records: new_records, total: new_total}
+      else
+        data
+      end
+    end
   end
 
-  def init({resource, window}) do
-    {:ok, :counting, %__MODULE__{resource: resource, window: window, records: []}}
+  def start_link(resource, {window, limit}) do
+    GenStateMachine.start_link(__MODULE__, {resource, {window, limit}})
+  end
+
+  def init({resource, {window, limit}}) do
+    {:ok, :counting,
+     %Data{resource: resource, window: window, records: [], max_total: limit + @buffer_length}}
   end
 
   def get_count(pid, resource, window) do
@@ -21,37 +57,31 @@ defmodule DistLimiter.Counter do
 
   # Callback
 
-  def counting(:enter, _old_state, %__MODULE__{window: window}) do
+  def counting(:enter, _old_state, %Data{window: window}) do
     {:keep_state_and_data, [{:state_timeout, window, :stop}]}
   end
 
   def counting(
         :cast,
         {:count_up, resource, count},
-        data = %__MODULE__{resource: resource, records: records}
+        data = %Data{resource: resource}
       ) do
     now = :erlang.system_time(:millisecond)
 
-    {:repeat_state, %__MODULE__{data | records: [{now, count} | records]}}
+    {:repeat_state, data |> Data.append({now, count})}
   end
 
   def counting(
         {:call, from},
         {:get_count, resource, window},
-        data = %__MODULE__{resource: resource, records: records}
+        data = %Data{resource: resource}
       ) do
     min_ts = :erlang.system_time(:millisecond) - window
 
-    count_sum =
-      records
-      |> Stream.take_while(fn {ts, _count} -> ts >= min_ts end)
-      |> Stream.map(fn {_ts, count} -> count end)
-      |> Enum.sum()
-
-    {:keep_state, data, [{:reply, from, count_sum}]}
+    {:keep_state, data, [{:reply, from, data |> Data.count_sum(min_ts)}]}
   end
 
-  def counting(:state_timeout, :stop, %__MODULE__{}) do
+  def counting(:state_timeout, :stop, %Data{}) do
     :stop
   end
 end

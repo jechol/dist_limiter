@@ -5,7 +5,7 @@ defmodule DistLimiter do
     sum = get_sum_of_consumption(resource, window)
 
     if sum + count <= limit do
-      DistLimiter.Counter.count_up(get_local_counter(resource, window), resource, count)
+      DistLimiter.Counter.count_up(get_local_counter(resource, window, limit), resource, count)
       {:ok, limit - (sum + count)}
     else
       {:error, :overflow}
@@ -29,13 +29,13 @@ defmodule DistLimiter do
     |> Enum.sum()
   end
 
-  defp get_local_counter(resource, window) do
+  defp get_local_counter(resource, window, limit) do
     case UniPg.get_local_members(@scope, resource) do
       [counter] ->
         counter
 
       [] ->
-        {:ok, counter} = DistLimiter.Counter.start_link(resource, window)
+        {:ok, counter} = DistLimiter.Counter.start_link(resource, {window, limit})
         UniPg.join(@scope, resource, [counter])
         counter
     end
