@@ -3,12 +3,16 @@ defmodule DistLimiter.Counter.Data do
 
   defstruct resource: nil, window: nil, records: [], total: 0, max_total: nil
 
-  def append(%__MODULE__{records: records, total: total} = data, {time, count} = r) do
+  def new(resource, {window, limit}, buffer) do
+    %Data{resource: resource, window: window, max_total: limit + buffer}
+  end
+
+  def append(%Data{records: records, total: total} = data, {time, count} = r) do
     %Data{data | records: [r | records], total: total + count}
     |> trim_if_exceed_max(time)
   end
 
-  def count_sum(%__MODULE__{records: records}, min_ts) do
+  def count_sum(%Data{records: records}, min_ts) do
     records
     |> Stream.take_while(fn {ts, _count} -> ts >= min_ts end)
     |> Stream.map(fn {_ts, count} -> count end)
