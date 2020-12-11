@@ -7,7 +7,7 @@ defmodule DistLimiterTest do
     :ok
   end
 
-  @gap 100
+  @gap 300
 
   def do_test(resource, first, second) do
     max = {@gap * 5, 2}
