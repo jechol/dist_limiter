@@ -31,7 +31,7 @@ iex(7)> DistLimiter.consume(resource, limit, 1)
 
 ## Installation
 
-The package can be installed by adding `dist_limiter` to your list of dependencies in `mix.exs`:
+Add `dist_limiter` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
