@@ -12,19 +12,18 @@ defmodule DistLimiterTest do
   def do_test(resource, first, second) do
     max = {@gap * 5, 2}
 
-    {:ok, 1} =
-      case first do
+    call = fn node ->
+      case node do
         :local -> DistLimiter.consume(resource, max, 1)
         :remote -> Cluster.rpc_other_node(DistLimiter, :consume, [resource, max, 1])
       end
+    end
+
+    assert {:ok, 1} == call.(first)
 
     Process.sleep(@gap * 2)
 
-    {:ok, 0} =
-      case second do
-        :local -> DistLimiter.consume(resource, max, 1)
-        :remote -> Cluster.rpc_other_node(DistLimiter, :consume, [resource, max, 1])
-      end
+    assert {:ok, 0} == call.(second)
 
     Process.sleep(@gap * 2)
 
@@ -33,13 +32,13 @@ defmodule DistLimiterTest do
 
     # Wait for first log disappear.
     Process.sleep(@gap * 2)
-    1 = DistLimiter.get_remaining(resource, max)
+    assert 1 == DistLimiter.get_remaining(resource, max)
 
     Process.sleep(@gap * 2)
-    2 = DistLimiter.get_remaining(resource, max)
+    assert 2 == DistLimiter.get_remaining(resource, max)
 
     Process.sleep(@gap * 2)
-    0 = UniPg.get_members(DistLimiter, resource) |> Enum.count()
+    assert 0 == UniPg.get_members(DistLimiter, resource) |> Enum.count()
   end
 
   test "local + local", %{test: resource} do
