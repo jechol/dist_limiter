@@ -1,4 +1,5 @@
 defmodule DistLimiter.Counter do
+  @moduledoc false
   use GenStateMachine, callback_mode: [:state_functions, :state_enter]
 
   @buffer_length 99

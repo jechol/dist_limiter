@@ -1,4 +1,5 @@
 defmodule DistLimiter.Counter.Data do
+  @moduledoc false
   alias __MODULE__
 
   defstruct resource: nil, window: nil, records: [], total: 0, max_total: nil
