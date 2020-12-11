@@ -5,9 +5,6 @@
 
 Actor-based distributed rate limiter.
 
-## Feature
-
-### Distributed
 Built on top of `pg`, nodes which are interested in the same resource form a process group. They record local resource consumption and exchange those records with other nodes when being asked to consume the resource.
 
 ## Usage
