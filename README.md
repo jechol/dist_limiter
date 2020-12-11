@@ -3,9 +3,18 @@
 [![License badge](https://img.shields.io/hexpm/l/dist_limiter)](https://github.com/jechol/dist_limiter/blob/master/LICENSE.md)
 # DistLimiter
 
-Actor-based distributed rate limiter.
+Distributed rate limiter.
 
-Built on top of `pg`, nodes which are interested in the same resource form a process group. They record local resource consumption and exchange those records with other nodes when being asked to consume the resource.
+## Features
+
+### Distributed
+Built on top of `pg`, nodes which are interested in the same resource automatically form a process group. They record local `consume` timestamps and exchange those records with other nodes when being asked to `consume`.
+### Garbage collection
+Member processes automatically stop when `window` milliseconds elapsed after last `consume` on the node.
+
+### Sliding window algorithm
+`dist_limiter` implemented sliding window algorithm.
+
 
 ## Usage
 
