@@ -5,7 +5,7 @@ defmodule DistLimiter do
     sum = get_sum_of_consumption(resource, window)
 
     if sum + count <= limit do
-      DistLimiter.Counter.count_up(get_local_server(resource, window), resource, count)
+      DistLimiter.Counter.count_up(get_local_counter(resource, window), resource, count)
       {:ok, limit - (sum + count)}
     else
       {:error, :overflow}
@@ -21,18 +21,18 @@ defmodule DistLimiter do
 
   defp get_sum_of_consumption(resource, window) do
     resource
-    |> get_servers()
-    |> Task.async_stream(fn server ->
-      DistLimiter.Counter.get_count(server, resource, window)
+    |> get_counters()
+    |> Task.async_stream(fn counter ->
+      DistLimiter.Counter.get_count(counter, resource, window)
     end)
     |> Stream.map(fn {:ok, count} -> count end)
     |> Enum.sum()
   end
 
-  defp get_local_server(resource, window) do
+  defp get_local_counter(resource, window) do
     case UniPg.get_local_members(@scope, resource) do
-      [server] ->
-        server
+      [counter] ->
+        counter
 
       [] ->
         {:ok, counter} = DistLimiter.Counter.start_link(resource, window)
@@ -41,7 +41,7 @@ defmodule DistLimiter do
     end
   end
 
-  defp get_servers(resource) do
+  defp get_counters(resource) do
     UniPg.get_members(@scope, resource)
     # uniq() is required for bugs in :pg
     |> Enum.uniq()

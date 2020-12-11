@@ -7,28 +7,50 @@ defmodule DistLimiterTest do
     :ok
   end
 
-  test "local" do
-    {:ok, 1} = DistLimiter.consume(:resource1, {200, 2}, 1)
-    {:ok, 0} = DistLimiter.consume(:resource1, {200, 2}, 1)
-    {:error, :overflow} = DistLimiter.consume(:resource1, {200, 2}, 1)
+  @gap 300
 
-    Process.sleep(300)
+  def do_test(first, second) do
+    max = {@gap * 5, 2}
 
-    2 = DistLimiter.get_remaining(:resource1, {200, 2})
-    {:ok, 1} = DistLimiter.consume(:resource1, {200, 2}, 1)
-    1 = DistLimiter.get_remaining(:resource1, {200, 2})
+    {:ok, 1} =
+      case first do
+        :local -> DistLimiter.consume(:resource3, max, 1)
+        :remote -> Cluster.rpc_other_node(DistLimiter, :consume, [:resource3, max, 1])
+      end
+
+    Process.sleep(@gap * 2)
+
+    {:ok, 0} =
+      case second do
+        :local -> DistLimiter.consume(:resource3, max, 1)
+        :remote -> Cluster.rpc_other_node(DistLimiter, :consume, [:resource3, max, 1])
+      end
+
+    Process.sleep(@gap * 2)
+
+    {:error, :overflow} = DistLimiter.consume(:resource3, max, 1)
+    {:error, :overflow} = Cluster.rpc_other_node(DistLimiter, :consume, [:resource3, max, 1])
+
+    # Wait for first log disappear.
+    Process.sleep(@gap * 2)
+    1 = DistLimiter.get_remaining(:resource3, max)
+
+    Process.sleep(@gap * 2)
+    2 = DistLimiter.get_remaining(:resource3, max)
+
+    Process.sleep(@gap * 4)
+    0 = UniPg.get_members(DistLimiter, :resource3) |> Enum.count()
   end
 
-  test "distributed" do
-    {:ok, 1} = DistLimiter.consume(:resource2, {1000, 2}, 1)
-    Process.sleep(300)
+  test "local + local" do
+    do_test(:local, :local)
+  end
 
-    {:ok, 0} = Cluster.rpc_other_node(DistLimiter, :consume, [:resource2, {1000, 2}, 1])
-    Process.sleep(300)
+  test "local + remote" do
+    do_test(:local, :remote)
+  end
 
-    {:error, :overflow} = DistLimiter.consume(:resource2, {1000, 2}, 1)
-
-    {:error, :overflow} =
-      Cluster.rpc_other_node(DistLimiter, :consume, [:resource2, {1000, 2}, 1])
+  test "remote + remote" do
+    do_test(:remote, :remote)
   end
 end
