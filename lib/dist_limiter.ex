@@ -3,17 +3,21 @@ defmodule DistLimiter do
 
   @doc """
   Consume a count of resources if available.
-  If succeeds, {:ok, remaining_count}
-  If falied, {:error, :overflow}
 
+  If succeeds, `{:ok, remaining_count}`.
+
+  If falied, `{:error, :overflow}`.
+
+    ```
     iex> DistLimiter.consume({:ip, "a.b.c.d", :password_challenge}, {60000, 1}, 1)
     {:ok, 0}
     iex> DistLimiter.consume({:ip, "a.b.c.d", :password_challenge}, {60000, 1}, 1)
     {:error, :overflow}
+    ```
   """
   @spec consume(resource :: any(), {window :: integer(), limit :: integer()}, count :: integer()) ::
           {:ok, integer()} | {:error, :overflow}
-  def consume(resource, {window, limit}, count) do
+  def consume(resource, {window, limit} = _rate, count) do
     sum = get_sum_of_consumption(resource, window)
 
     if sum + count <= limit do
@@ -27,15 +31,17 @@ defmodule DistLimiter do
   @doc """
   Get remaining count of the given resource.
 
+    ```
     iex> DistLimiter.get_remaining({:ip, "a.b.c.d", :password_challenge}, {60000, 1})
     1
     iex> DistLimiter.consume({:ip, "a.b.c.d", :password_challenge}, {60000, 1}, 1)
     {:ok, 0}
     iex> DistLimiter.get_remaining({:ip, "a.b.c.d", :password_challenge}, {60000, 1})
     0
+    ```
   """
   @spec get_remaining(resource :: any(), {window :: integer(), limit :: integer()}) :: integer()
-  def get_remaining(resource, {window, limit}) do
+  def get_remaining(resource, {window, limit} = _rate) do
     sum = get_sum_of_consumption(resource, window)
     limit - sum
   end
