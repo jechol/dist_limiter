@@ -7,50 +7,50 @@ defmodule DistLimiterTest do
     :ok
   end
 
-  @gap 300
+  @gap 100
 
-  def do_test(first, second) do
+  def do_test(resource, first, second) do
     max = {@gap * 5, 2}
 
     {:ok, 1} =
       case first do
-        :local -> DistLimiter.consume(:resource3, max, 1)
-        :remote -> Cluster.rpc_other_node(DistLimiter, :consume, [:resource3, max, 1])
+        :local -> DistLimiter.consume(resource, max, 1)
+        :remote -> Cluster.rpc_other_node(DistLimiter, :consume, [resource, max, 1])
       end
 
     Process.sleep(@gap * 2)
 
     {:ok, 0} =
       case second do
-        :local -> DistLimiter.consume(:resource3, max, 1)
-        :remote -> Cluster.rpc_other_node(DistLimiter, :consume, [:resource3, max, 1])
+        :local -> DistLimiter.consume(resource, max, 1)
+        :remote -> Cluster.rpc_other_node(DistLimiter, :consume, [resource, max, 1])
       end
 
     Process.sleep(@gap * 2)
 
-    {:error, :overflow} = DistLimiter.consume(:resource3, max, 1)
-    {:error, :overflow} = Cluster.rpc_other_node(DistLimiter, :consume, [:resource3, max, 1])
+    {:error, :overflow} = DistLimiter.consume(resource, max, 1)
+    {:error, :overflow} = Cluster.rpc_other_node(DistLimiter, :consume, [resource, max, 1])
 
     # Wait for first log disappear.
     Process.sleep(@gap * 2)
-    1 = DistLimiter.get_remaining(:resource3, max)
+    1 = DistLimiter.get_remaining(resource, max)
 
     Process.sleep(@gap * 2)
-    2 = DistLimiter.get_remaining(:resource3, max)
+    2 = DistLimiter.get_remaining(resource, max)
 
-    Process.sleep(@gap * 4)
-    0 = UniPg.get_members(DistLimiter, :resource3) |> Enum.count()
+    Process.sleep(@gap * 2)
+    0 = UniPg.get_members(DistLimiter, resource) |> Enum.count()
   end
 
-  test "local + local" do
-    do_test(:local, :local)
+  test "local + local", %{test: resource} do
+    do_test(resource, :local, :local)
   end
 
-  test "local + remote" do
-    do_test(:local, :remote)
+  test "local + remote", %{test: resource} do
+    do_test(resource, :local, :remote)
   end
 
-  test "remote + remote" do
-    do_test(:remote, :remote)
+  test "remote + remote", %{test: resource} do
+    do_test(resource, :remote, :remote)
   end
 end
