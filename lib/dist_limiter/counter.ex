@@ -15,7 +15,13 @@ defmodule DistLimiter.Counter do
   end
 
   def get_count(pid, resource, window) do
-    GenStateMachine.call(pid, {:get_count, resource, window})
+    try do
+      GenStateMachine.call(pid, {:get_count, resource, window})
+    catch
+      :exit, {:noproc, _} ->
+        # time-of-check to time-of-use race condition happened.
+        0
+    end
   end
 
   def count_up(pid, resource, count) do

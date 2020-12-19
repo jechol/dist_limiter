@@ -58,7 +58,7 @@ defmodule DistLimiter do
     |> Enum.sum()
   end
 
-  def get_local_counter(resource, window, limit) do
+  defp get_local_counter(resource, window, limit) do
     case UniPg.get_local_members(@scope, resource) do
       [counter] ->
         counter
