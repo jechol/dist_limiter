@@ -1,5 +1,5 @@
 defmodule DistLimiter.Counter.DataTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias DistLimiter.Counter.Data
 
