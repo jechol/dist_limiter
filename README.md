@@ -45,7 +45,7 @@ Add `dist_limiter` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:dist_limiter, "~> 0.1.0"}
+    {:dist_limiter, "~> 0.1.1"}
   ]
 end
 ```
