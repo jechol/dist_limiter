@@ -7,7 +7,8 @@ defmodule DistLimiter.Application do
       %{
         id: UniPg,
         start: {UniPg, :start_link, [DistLimiter]}
-      }
+      },
+      {DynamicSupervisor, strategy: :one_for_one, name: DistLimiter.DynamicSupervisor}
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: __MODULE__)

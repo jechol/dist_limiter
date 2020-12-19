@@ -32,11 +32,11 @@ defmodule DistLimiter do
   Get remaining count of the given resource.
 
     ```
-    iex> DistLimiter.get_remaining({:ip, "a.b.c.d", :password_challenge}, {60000, 1})
+    iex> DistLimiter.get_remaining({:ip, "a.b.c.d", :sign_up}, {60000, 1})
     1
-    iex> DistLimiter.consume({:ip, "a.b.c.d", :password_challenge}, {60000, 1}, 1)
+    iex> DistLimiter.consume({:ip, "a.b.c.d", :sign_up}, {60000, 1}, 1)
     {:ok, 0}
-    iex> DistLimiter.get_remaining({:ip, "a.b.c.d", :password_challenge}, {60000, 1})
+    iex> DistLimiter.get_remaining({:ip, "a.b.c.d", :sign_up}, {60000, 1})
     0
     ```
   """
@@ -58,13 +58,22 @@ defmodule DistLimiter do
     |> Enum.sum()
   end
 
-  defp get_local_counter(resource, window, limit) do
+  def get_local_counter(resource, window, limit) do
     case UniPg.get_local_members(@scope, resource) do
       [counter] ->
         counter
 
       [] ->
-        {:ok, counter} = DistLimiter.Counter.start_link(resource, {window, limit})
+        {:ok, counter} =
+          DynamicSupervisor.start_child(
+            DistLimiter.DynamicSupervisor,
+            %{
+              id: resource,
+              start: {DistLimiter.Counter, :start_link, [{resource, {window, limit}}]},
+              restart: :transient
+            }
+          )
+
         UniPg.join(@scope, resource, [counter])
         counter
     end

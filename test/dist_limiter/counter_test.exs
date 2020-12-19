@@ -4,7 +4,7 @@ defmodule DistLimiter.CounterTest do
   alias DistLimiter.Counter
 
   test "count" do
-    {:ok, pid} = Counter.start_link(:resource1, {200, 10})
+    {:ok, pid} = Counter.start_link({:resource1, {200, 10}})
     Counter.count_up(pid, :resource1, 1)
     Counter.count_up(pid, :resource1, 1)
 
@@ -12,7 +12,7 @@ defmodule DistLimiter.CounterTest do
   end
 
   test "count -> stop" do
-    {:ok, pid} = Counter.start_link(:resource1, {100, 10})
+    {:ok, pid} = Counter.start_link({:resource1, {100, 10}})
 
     Process.sleep(50)
     Counter.count_up(pid, :resource1, 1)
@@ -25,7 +25,7 @@ defmodule DistLimiter.CounterTest do
   end
 
   test "stop" do
-    {:ok, pid} = Counter.start_link(:resource1, {100, 10})
+    {:ok, pid} = Counter.start_link({:resource1, {100, 10}})
 
     Process.sleep(200)
     refute Process.alive?(pid)

@@ -6,8 +6,8 @@ defmodule DistLimiter.Counter do
 
   alias __MODULE__.Data
 
-  def start_link(resource, {window, limit}) do
-    GenStateMachine.start_link(__MODULE__, {resource, {window, limit}})
+  def start_link({_resource, {_window, _limit}} = setup) do
+    GenStateMachine.start_link(__MODULE__, setup)
   end
 
   def init({resource, {window, limit}}) do
